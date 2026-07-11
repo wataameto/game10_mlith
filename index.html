@@ -752,7 +752,7 @@ function handlePointerEnd(e){
     morph(); // 上スワイプ→変身
   } else if(touchState.dragDir==="v" && dyTotal>cell*1.5 && dt<300){
     hardDrop(); // 下フリック→ハードドロップ
-  } else if(Math.abs(dxTotal)<cell*1.3 && Math.abs(dyTotal)<cell*1.3){
+  } else if(!touchState.dragDir){
     const rect=cv.getBoundingClientRect();
     const relX=e.clientX-rect.left, relY=e.clientY-rect.top;
     if(relY<rect.height*0.15) doRotate180();
