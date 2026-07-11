@@ -24,45 +24,41 @@
     font-size:15px; padding:8px 14px; cursor:pointer; margin-top:8px; font-weight:bold;
   }
   button:hover{ background:#ffc1e6; }
+  #fieldWrap{ position:relative; }
   #touchpad{
-    max-width:360px; margin:14px auto 0; display:grid;
-    grid-template-columns:repeat(2,1fr); gap:10px;
+    position:absolute; top:8px; right:8px; z-index:5;
+    display:grid; grid-template-columns:repeat(2,1fr); gap:6px;
   }
   #touchpad button{
-    background:#8ad1ff; color:#0d2b3a;
-    font-size:26px; padding:14px 0; margin-top:0;
+    background:rgba(138,209,255,0.55); color:#0d2b3a;
+    font-size:12px; padding:8px 10px; margin-top:0; border-radius:8px;
     user-select:none; -webkit-user-select:none; touch-action:manipulation;
+    backdrop-filter:blur(1px);
   }
-  #touchpad button:hover{ background:#b3e2ff; }
+  #touchpad button:hover{ background:rgba(179,226,255,0.75); }
 </style>
 </head>
 <body>
   <h1>🌸 mlith 🌸</h1>
   <div id="wrap">
-    <canvas id="cv" width="336" height="672"></canvas>
+    <div id="fieldWrap">
+      <canvas id="cv" width="336" height="672"></canvas>
+      <div id="touchpad">
+        <button onclick="touchAction(morph)">変身(c)</button>
+        <button onclick="touchAction(doRotate)">回転</button>
+        <button onclick="touchAction(()=>{ if(tryMove(-1,0)) sfxMove(); })">左</button>
+        <button onclick="touchAction(()=>{ if(tryMove(1,0)) sfxMove(); })">右</button>
+        <button onclick="touchAction(hardDrop)">落下(スペース)</button>
+        <button onclick="touchAction(softDrop)">下</button>
+      </div>
+    </div>
     <div id="side">
       <div>スコア：<span id="score">0</span></div>
       <hr style="border-color:#ff9ed855">
-      <div><span class="key">←</span><span class="key">→</span> 移動</div>
-      <div><span class="key">↑</span> 回転</div>
-      <div><span class="key">↓</span> ソフトドロップ</div>
-      <div><span class="key">スペース</span> ハードドロップ</div>
-      <div><span class="key">C</span> 形を変える（変身！）</div>
-      <hr style="border-color:#ff9ed855">
-      <div>🐛はブロックの上をニョロニョロ歩くよ！</div>
-      <div><span class="key">M</span> サウンドON/OFF</div>
       <div id="over">ゲームオーバーなんよ！</div>
       <button onclick="restart()">もう一回やるんよ！</button>
       <button onclick="toggleMute()" id="muteBtn">🔊 サウンドON</button>
     </div>
-  </div>
-  <div id="touchpad">
-    <button onclick="touchAction(morph)">🐛変身</button>
-    <button onclick="touchAction(doRotate)">🔄</button>
-    <button onclick="touchAction(()=>{ if(tryMove(-1,0)) sfxMove(); })">⬅️</button>
-    <button onclick="touchAction(()=>{ if(tryMove(1,0)) sfxMove(); })">➡️</button>
-    <button onclick="touchAction(hardDrop)">⏬</button>
-    <button onclick="touchAction(softDrop)">⬇️</button>
   </div>
 
 <script>
