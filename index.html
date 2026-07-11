@@ -12,16 +12,17 @@
     font-family:"Hiragino Maru Gothic Pro","Comic Sans MS",sans-serif;
     text-align:center;
     margin:0; padding:10px; box-sizing:border-box;
-    min-height:100dvh;
+    height:100dvh;
     display:flex; flex-direction:column; align-items:center;
   }
   h1{ font-size:22px; color:#b08968; text-shadow:2px 2px #00000055; margin:2px; flex:0 0 auto; }
   #scoreLine{ font-size:16px; color:#f0dcc4; margin-left:12px; }
   #wrap{
-    display:flex; justify-content:center; align-items:center;
-    width:100%;
+    display:flex; justify-content:center; align-items:stretch;
+    width:100%; flex:1 1 auto; min-height:0;
   }
-  canvas{ background:#3f2a1c; border:4px solid #b08968; border-radius:10px; box-shadow:0 0 20px #b0896855; max-width:92vw; max-height:58dvh; width:auto; height:auto; touch-action:none; }
+  #fieldWrap{ display:flex; align-items:center; justify-content:center; height:100%; position:relative; }
+  canvas{ background:#3f2a1c; border:4px solid #b08968; border-radius:10px; box-shadow:0 0 20px #b0896855; max-width:92vw; max-height:100%; width:auto; height:auto; touch-action:none; }
   .key{ background:#c9a876; color:#2a1a0e; border-radius:6px; padding:1px 6px; font-weight:bold; }
   #over{
     display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -33,10 +34,9 @@
     font-size:15px; padding:8px 14px; cursor:pointer; margin-top:8px; font-weight:bold;
   }
   button:hover{ background:#bd9268; }
-  #fieldWrap{ position:relative; }
   #touchpad, #touchpadLeft{
-    position:fixed; top:60px; z-index:5;
-    display:grid; gap:6px;
+    position:fixed; top:50dvh; z-index:5;
+    display:grid; gap:44px;
   }
   #touchpad{ right:0; }
   #touchpadLeft{ left:0; }
