@@ -32,6 +32,23 @@
     padding:14px 20px; border-radius:12px; z-index:6; white-space:nowrap;
     user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
   }
+  #startScreen{
+    position:absolute; inset:0; z-index:10; display:flex;
+    align-items:center; justify-content:center;
+    background:rgba(10,6,3,0.88); border-radius:6px;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+  }
+  #startScreen .box{
+    text-align:left; color:#f0dcc4; font-size:13px; line-height:1.8;
+    max-width:85%; padding:10px;
+  }
+  #startScreen h2{ color:#e0b98a; font-size:18px; margin:0 0 8px; text-align:center; }
+  #startScreen b{ color:#e0b98a; }
+  #startScreen .go{
+    margin-top:14px; text-align:center; font-size:15px; font-weight:bold;
+    color:#ffe6c8; animation:pulse 1.4s infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.4;} }
   button{
     background:#a97c56; color:#2a160a; border:none; border-radius:10px;
     font-size:15px; padding:8px 14px; cursor:pointer; margin-top:8px; font-weight:bold;
@@ -50,6 +67,15 @@
     <div id="fieldWrap">
       <canvas id="cv" width="336" height="672"></canvas>
       <div id="over">ゲームオーバー！</div>
+      <div id="startScreen">
+        <div class="box">
+          <h2>あそびかた</h2>
+          <div><b>PC</b>：←→移動／↑回転／↓ソフトドロップ<br>スペースでハードドロップ／Cで変身／Mでサウンド</div>
+          <br>
+          <div><b>スマホ</b>：左右スワイプで移動<br>下ドラッグでソフトドロップ／下フリックでハードドロップ<br>上スワイプで変身<br>タップ：右＝時計回り／左＝反時計回り／上部＝180度回転</div>
+          <div class="go">タップ／キーでスタート</div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="bottomBar"><button onclick="restart()">リスタート</button><button onclick="toggleMute()" id="muteBtn">🔊 サウンドON</button></div>
@@ -574,9 +600,19 @@ function doRotate180(){
   applyRotation(normalize(rotate(rotate(current.cells))));
 }
 
+// ===== スタート画面（最初にキー操作の説明を表示） =====
+let started=false, justStarted=false;
+const startScreenEl=document.getElementById("startScreen");
+function startGame(){
+  if(started) return;
+  started=true; justStarted=true;
+  startScreenEl.style.display="none";
+}
+
 document.addEventListener("keydown",e=>{
   ensureAudio();
   startBgm();
+  if(!started){ startGame(); return; }
   if(e.key==="m"||e.key==="M"){ toggleMute(); return; }
   if(gameOver) return;
   if(e.key==="ArrowLeft"){ if(tryMove(-1,0)) sfxMove(); }
@@ -587,14 +623,21 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="c"||e.key==="C") morph();
 });
 
+startScreenEl.addEventListener("pointerdown",e=>{
+  ensureAudio(); startBgm();
+  startGame();
+  e.stopPropagation();
+});
+
 // ===== スマホ操作（スワイプ＆タップ、ボタンなし） =====
 let touchState=null;
 function cellPx(){ return cv.getBoundingClientRect().width / COLS; }
 
-cv.addEventListener("pointerdown",e=>{
+document.addEventListener("pointerdown",e=>{
+  if(e.target.closest("button")) return; // ボタン類は通常のクリックとして扱う
   ensureAudio(); startBgm();
+  if(!started){ startGame(); return; }
   if(gameOver) return;
-  try{ cv.setPointerCapture(e.pointerId); }catch(err){}
   touchState={
     startX:e.clientX, startY:e.clientY,
     lastX:e.clientX, lastY:e.clientY,
@@ -602,7 +645,7 @@ cv.addEventListener("pointerdown",e=>{
   };
 });
 
-cv.addEventListener("pointermove",e=>{
+document.addEventListener("pointermove",e=>{
   if(!touchState || gameOver) return;
   const cell=cellPx();
   const dxTotal=e.clientX-touchState.startX;
@@ -639,8 +682,8 @@ function handlePointerEnd(e){
   }
   touchState=null;
 }
-cv.addEventListener("pointerup",handlePointerEnd);
-cv.addEventListener("pointercancel",handlePointerEnd);
+document.addEventListener("pointerup",handlePointerEnd);
+document.addEventListener("pointercancel",handlePointerEnd);
 
 function updateUI(){
   scoreEl.textContent=score;
@@ -699,8 +742,11 @@ function draw(){
 let last=0;
 const DROP=450;
 function loop(t){
-  if(!gameOver){
-    if(t-last>DROP){ last=t; if(!tryMove(0,1)) lock(); bugTimer++; if(bugTimer>1){ bugTimer=0; moveBugs(); clearLines(); updateUI(); } }
+  if(started){
+    if(justStarted){ last=t; justStarted=false; }
+    if(!gameOver){
+      if(t-last>DROP){ last=t; if(!tryMove(0,1)) lock(); bugTimer++; if(bugTimer>1){ bugTimer=0; moveBugs(); clearLines(); updateUI(); } }
+    }
   }
   draw();
   requestAnimationFrame(loop);
