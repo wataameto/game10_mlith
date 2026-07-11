@@ -18,8 +18,10 @@
     user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
     overscroll-behavior:none; touch-action:none;
   }
-  h1{ font-size:22px; color:#dcae8a; text-shadow:1px 1px #00000033; margin:2px; flex:0 0 auto; }
-  #scoreLine{ font-size:16px; color:#f7ebe0; margin-left:12px; }
+  #headerBar{ width:100%; max-width:400px; flex:0 0 auto; margin:2px 0; }
+  .hRow{ display:flex; justify-content:space-between; align-items:baseline; }
+  .titleText{ font-size:22px; color:#dcae8a; text-shadow:1px 1px #00000033; font-weight:bold; }
+  .hLeft, .hRight{ font-size:15px; color:#f7ebe0; }
   #wrap{
     display:flex; justify-content:center; align-items:stretch;
     width:100%; flex:1 1 auto; min-height:0;
@@ -69,7 +71,16 @@
 </style>
 </head>
 <body>
-  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span>　<span id="diffLabel">ふつう</span>　さいこう：<span id="bestScore">0</span></span></h1>
+  <div id="headerBar">
+    <div class="hRow">
+      <span class="titleText">mlith</span>
+      <span class="hRight">さいこう：<span id="bestScore">0</span></span>
+    </div>
+    <div class="hRow">
+      <span class="hLeft">モード：<span id="diffLabel">ふつう</span></span>
+      <span class="hRight">スコア：<span id="score">0</span></span>
+    </div>
+  </div>
   <div id="wrap">
     <div id="fieldWrap">
       <canvas id="cv" width="336" height="672"></canvas>
