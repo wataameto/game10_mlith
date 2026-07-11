@@ -117,9 +117,9 @@ const overEl=document.getElementById("over");
 
 // ===== 難易度（3段階）と難易度別の最高スコア記録 =====
 const DIFFICULTIES = {
-  easy:   { label:"かんたん",   drop:650, bugChance:0.20, weights:[5,4,3,2,1] },
+  easy:   { label:"かんたん",   drop:650, bugChance:0.20, weights:[1,1,1,1,1] },
   normal: { label:"ふつう",     drop:450, bugChance:0.35, weights:[1,2,3,4,5] },
-  hard:   { label:"むずかしい", drop:300, bugChance:0.50, weights:[1,4,9,16,25] }
+  hard:   { label:"むずかしい", drop:300, bugChance:0.50, weights:[1,2,3,5,8] }
 };
 let difficulty = localStorage.getItem("mlith_difficulty") || "normal";
 let DROP = DIFFICULTIES[difficulty].drop;
