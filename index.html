@@ -7,23 +7,24 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐛</text></svg>">
 <style>
   body{
-    background:#2b1b3a;
-    color:#ffe6f5;
+    background:#f3d9b1;
+    color:#4a2f1a;
     font-family:"Hiragino Maru Gothic Pro","Comic Sans MS",sans-serif;
     text-align:center;
     margin:0; padding:16px;
   }
-  h1{ font-size:26px; color:#ff9ed8; text-shadow:2px 2px #00000055; margin:4px; }
+  h1{ font-size:26px; color:#c1672e; text-shadow:2px 2px #00000022; margin:4px; }
+  #scoreLine{ font-size:16px; color:#4a2f1a; margin-left:12px; }
   #wrap{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:18px; align-items:flex-start; max-width:100%; }
-  canvas{ background:#1a1026; border:4px solid #ff9ed8; border-radius:10px; box-shadow:0 0 20px #ff9ed855; max-width:92vw; height:auto; touch-action:none; }
+  canvas{ background:#fbe8c8; border:4px solid #c1672e; border-radius:10px; box-shadow:0 0 20px #c1672e55; max-width:92vw; height:auto; touch-action:none; }
   #side{ text-align:left; font-size:14px; line-height:1.7; max-width:240px; }
-  .key{ background:#ffe6f5; color:#5a2b5a; border-radius:6px; padding:1px 6px; font-weight:bold; }
-  #over{ color:#ff5b8a; font-size:22px; font-weight:bold; display:none; }
+  .key{ background:#f6c99b; color:#5a3a1a; border-radius:6px; padding:1px 6px; font-weight:bold; }
+  #over{ color:#d94f30; font-size:22px; font-weight:bold; display:none; }
   button{
-    background:#ff9ed8; color:#3a103a; border:none; border-radius:10px;
+    background:#e8a463; color:#3a2410; border:none; border-radius:10px;
     font-size:15px; padding:8px 14px; cursor:pointer; margin-top:8px; font-weight:bold;
   }
-  button:hover{ background:#ffc1e6; }
+  button:hover{ background:#f0c088; }
   #fieldWrap{ position:relative; }
   #touchpad{
     position:absolute; top:8px; right:8px; z-index:5;
@@ -31,15 +32,16 @@
   }
   #touchpad button{
     background:rgba(138,209,255,0.55); color:#0d2b3a;
-    font-size:12px; padding:8px 10px; margin-top:0; border-radius:8px;
+    font-size:15px; padding:12px 14px; margin-top:0; border-radius:8px;
     user-select:none; -webkit-user-select:none; touch-action:manipulation;
     backdrop-filter:blur(1px);
   }
   #touchpad button:hover{ background:rgba(179,226,255,0.75); }
+  #bottomBar{ margin-top:14px; }
 </style>
 </head>
 <body>
-  <h1>🌸 mlith 🌸</h1>
+  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span></span></h1>
   <div id="wrap">
     <div id="fieldWrap">
       <canvas id="cv" width="336" height="672"></canvas>
@@ -53,12 +55,12 @@
       </div>
     </div>
     <div id="side">
-      <div>スコア：<span id="score">0</span></div>
-      <hr style="border-color:#ff9ed855">
       <div id="over">ゲームオーバーなんよ！</div>
-      <button onclick="restart()">もう一回やるんよ！</button>
-      <button onclick="toggleMute()" id="muteBtn">🔊 サウンドON</button>
     </div>
+  </div>
+  <div id="bottomBar">
+    <button onclick="restart()">リスタート</button>
+    <button onclick="toggleMute()" id="muteBtn">🔊 サウンドON</button>
   </div>
 
 <script>
