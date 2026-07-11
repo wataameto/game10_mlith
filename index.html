@@ -39,9 +39,10 @@
     user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
   }
   #startScreen .box{
-    text-align:left; color:#f7ebe0; font-size:13px; line-height:1.8;
+    text-align:left; color:#f7ebe0; font-size:13px; line-height:1.6;
     max-width:85%; padding:10px;
   }
+  #startScreen .box>div{ margin-top:8px; }
   #startScreen h2{ color:#eec3a0; font-size:18px; margin:0 0 8px; text-align:center; }
   #startScreen b{ color:#eec3a0; }
   #startScreen .go{
@@ -76,11 +77,9 @@
       <div id="startScreen">
         <div class="box">
           <h2>あそびかた</h2>
-          <div><b>PC</b>：←→移動／↑回転／↓ソフトドロップ<br>スペースでハードドロップ／Cで変身／Mでサウンド</div>
-          <br>
-          <div><b>スマホ</b>：左右スワイプで移動<br>下ドラッグでソフトドロップ／下フリックでハードドロップ<br>上スワイプで変身<br>タップ：右＝時計回り／左＝反時計回り／上部＝180度回転</div>
-          <br>
-          <div><b>スコア</b>：ブロックを1個置くごとに1点<br>ライン消去は同時消しほどお得（1行=10／2行=40／3行=90／4行=160／5行=250）</div>
+          <div><b>PC</b>：←→移動／↑回転／↓ソフトドロップ／スペースでハードドロップ／Cで変身／Mでサウンド</div>
+          <div><b>スマホ</b>：左右スワイプで移動／下ドラッグでソフトドロップ／下フリックでハードドロップ／上スワイプで変身／タップ(右＝時計回り・左＝反時計回り・上部＝180度回転)</div>
+          <div><b>スコア</b>：ブロック1個で1点／ライン消去（1行10・2行40・3行90・4行160・5行250）</div>
           <div id="diffBar">
             <button data-diff="hard" onclick="setDifficulty('hard')">むずかしい</button>
             <button data-diff="normal" onclick="setDifficulty('normal')">ふつう</button>
