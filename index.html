@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>mlith</title>
+<title>Mlith</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐛</text></svg>">
 <style>
   html{ overscroll-behavior:none; touch-action:none; height:100%; }
@@ -74,7 +74,7 @@
 <body>
   <div id="headerBar">
     <div class="hRow">
-      <span class="titleText">mlith</span>
+      <span class="titleText">Mlith</span>
       <span class="hRight">ハイスコア：<span id="bestScore">0</span></span>
     </div>
     <div class="hRow">
@@ -89,8 +89,8 @@
       <div id="startScreen">
         <div class="box">
           <h2>あそびかた</h2>
-          <div><b>PC</b>：←→移動／↑回転／↓ソフトドロップ／スペースでハードドロップ／Cで変身／Mでサウンド</div>
-          <div><b>スマホ</b>：左右スワイプで移動／下ドラッグでソフトドロップ／下フリックでハードドロップ／上スワイプで変身／タップ(右半分＝時計回り・左半分＝反時計回り・上部＝180度回転)</div>
+          <div><b>PC</b>：←→移動／↑回転／↓ソフトドロップ／スペースでハードドロップ／Cでブロック変更／Mでサウンド</div>
+          <div><b>スマホ</b>：左右スワイプで移動／下ドラッグでソフトドロップ／下フリックでハードドロップ／上スワイプでブロック変更／タップ(右半分＝時計回り・左半分＝反時計回り・上部＝180度回転)</div>
           <div><b>スコア</b>：ブロック1個で1点／ライン消去（1行10・2行40・3行90・4行160・5行250）</div>
           <div id="diffBar">
             <button data-diff="hard" onclick="setDifficulty('hard')">上級</button>
@@ -328,9 +328,10 @@ function ghostDropY(){
 function morph(){
   const n=pickN();
   const cells=normalize(pick(SHAPES[n]).map(c=>[...c]));
-  const old=current.cells;
+  const old=current.cells, oldColor=current.color;
   current.cells=cells;
-  if(collide()){ current.cells=old; } // 入らなきゃ元に戻す
+  current.color=pick(COLORS);
+  if(collide()){ current.cells=old; current.color=oldColor; } // 入らなきゃ元に戻す
   else sfxMorph();
 }
 
