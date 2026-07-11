@@ -59,10 +59,21 @@
     margin-top:14px; flex:0 0 auto; display:flex; gap:10px;
     user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
   }
+  #diffBar{
+    display:flex; gap:6px; flex:0 0 auto; margin-top:4px;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+  }
+  #diffBar button{ font-size:12px; padding:5px 10px; margin-top:0; }
+  #diffBar button.active{ background:#e0b98a; color:#2a160a; }
 </style>
 </head>
 <body>
-  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span></span></h1>
+  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span>　さいこう：<span id="bestScore">0</span></span></h1>
+  <div id="diffBar">
+    <button data-diff="easy" onclick="setDifficulty('easy')">かんたん</button>
+    <button data-diff="normal" onclick="setDifficulty('normal')">ふつう</button>
+    <button data-diff="hard" onclick="setDifficulty('hard')">むずかしい</button>
+  </div>
   <div id="wrap">
     <div id="fieldWrap">
       <canvas id="cv" width="336" height="672"></canvas>
@@ -85,7 +96,38 @@ const COLS=12, ROWS=24, CELL=28;
 const cv=document.getElementById("cv");
 const ctx=cv.getContext("2d");
 const scoreEl=document.getElementById("score");
+const bestScoreEl=document.getElementById("bestScore");
 const overEl=document.getElementById("over");
+
+// ===== 難易度（3段階）と難易度別の最高スコア記録 =====
+const DIFFICULTIES = {
+  easy:   { label:"かんたん",   drop:650, bugChance:0.20 },
+  normal: { label:"ふつう",     drop:450, bugChance:0.35 },
+  hard:   { label:"むずかしい", drop:300, bugChance:0.50 }
+};
+let difficulty = localStorage.getItem("mlith_difficulty") || "normal";
+let DROP = DIFFICULTIES[difficulty].drop;
+let BUG_CHANCE = DIFFICULTIES[difficulty].bugChance;
+
+function bestKey(diff){ return "mlith_best_"+diff; }
+function getBest(diff){ return parseInt(localStorage.getItem(bestKey(diff))||"0",10); }
+function saveBestScore(){
+  if(score>getBest(difficulty)) localStorage.setItem(bestKey(difficulty), String(score));
+}
+function updateDiffUI(){
+  document.querySelectorAll("#diffBar button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.diff===difficulty);
+  });
+  bestScoreEl.textContent = getBest(difficulty);
+}
+function setDifficulty(diff){
+  difficulty = diff;
+  localStorage.setItem("mlith_difficulty", diff);
+  DROP = DIFFICULTIES[diff].drop;
+  BUG_CHANCE = DIFFICULTIES[diff].bugChance;
+  updateDiffUI();
+  restart();
+}
 
 // ===== サウンド（外部音源なし、Web Audio APIで生成） =====
 let audioCtx=null;
@@ -218,6 +260,8 @@ function spawn(){
     overEl.style.display="block";
     sfxGameOver();
     stopBgm();
+    saveBestScore();
+    updateDiffUI();
   }
 }
 
@@ -331,7 +375,7 @@ function getSpawnCandidates() {
 
 function spawnBug(){
   const cands = getSpawnCandidates();
-  if (cands.length && Math.random() < 0.35) {
+  if (cands.length && Math.random() < BUG_CHANCE) {
     const c = pick(cands);
     const maxLen = 3 + Math.floor(Math.random() * 3);
     const segs = [[c.x, c.y], [c.x, c.y]];
@@ -740,7 +784,6 @@ function draw(){
 }
 
 let last=0;
-const DROP=450;
 function loop(t){
   if(started){
     if(justStarted){ last=t; justStarted=false; }
@@ -754,6 +797,7 @@ function loop(t){
 
 function restart(){ reset(); }
 
+updateDiffUI();
 reset();
 requestAnimationFrame(loop);
 </script>
