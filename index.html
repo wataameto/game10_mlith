@@ -75,10 +75,10 @@
   <div id="headerBar">
     <div class="hRow">
       <span class="titleText">mlith</span>
-      <span class="hRight">さいこう：<span id="bestScore">0</span></span>
+      <span class="hRight">ハイスコア：<span id="bestScore">0</span></span>
     </div>
     <div class="hRow">
-      <span class="hLeft">モード：<span id="diffLabel">ふつう</span></span>
+      <span class="hLeft">モード：<span id="diffLabel">中級</span></span>
       <span class="hRight">スコア：<span id="score">0</span></span>
     </div>
   </div>
@@ -93,12 +93,12 @@
           <div><b>スマホ</b>：左右スワイプで移動／下ドラッグでソフトドロップ／下フリックでハードドロップ／上スワイプで変身／タップ(右半分＝時計回り・左半分＝反時計回り・上部＝180度回転)</div>
           <div><b>スコア</b>：ブロック1個で1点／ライン消去（1行10・2行40・3行90・4行160・5行250）</div>
           <div id="diffBar">
-            <button data-diff="hard" onclick="setDifficulty('hard')">むずかしい</button>
-            <button data-diff="normal" onclick="setDifficulty('normal')">ふつう</button>
-            <button data-diff="easy" onclick="setDifficulty('easy')">かんたん</button>
+            <button data-diff="hard" onclick="setDifficulty('hard')">上級</button>
+            <button data-diff="normal" onclick="setDifficulty('normal')">中級</button>
+            <button data-diff="easy" onclick="setDifficulty('easy')">初級</button>
           </div>
           <div class="bestList">
-            さいこう　かんたん：<span id="best_easy">0</span>／ふつう：<span id="best_normal">0</span>／むずかしい：<span id="best_hard">0</span>
+            ハイスコア　初級：<span id="best_easy">0</span>／中級：<span id="best_normal">0</span>／上級：<span id="best_hard">0</span>
           </div>
           <div class="go">難易度をタップしてスタート</div>
         </div>
@@ -118,9 +118,9 @@ const overEl=document.getElementById("over");
 
 // ===== 難易度（3段階）と難易度別の最高スコア記録 =====
 const DIFFICULTIES = {
-  easy:   { label:"かんたん",   drop:650, bugChance:0.20, weights:[1,1,1,1,1] },
-  normal: { label:"ふつう",     drop:450, bugChance:0.35, weights:[1,2,3,4,5] },
-  hard:   { label:"むずかしい", drop:300, bugChance:0.50, weights:[1,2,3,5,8] }
+  easy:   { label:"初級", drop:650, bugChance:0.20, weights:[1,1,1,1,1] },
+  normal: { label:"中級", drop:450, bugChance:0.35, weights:[1,2,3,4,5] },
+  hard:   { label:"上級", drop:300, bugChance:0.50, weights:[1,2,3,5,8] }
 };
 let difficulty = localStorage.getItem("mlith_difficulty") || "normal";
 let DROP = DIFFICULTIES[difficulty].drop;
