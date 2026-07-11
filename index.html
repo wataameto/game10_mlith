@@ -594,7 +594,7 @@ function cellPx(){ return cv.getBoundingClientRect().width / COLS; }
 cv.addEventListener("pointerdown",e=>{
   ensureAudio(); startBgm();
   if(gameOver) return;
-  cv.setPointerCapture(e.pointerId);
+  try{ cv.setPointerCapture(e.pointerId); }catch(err){}
   touchState={
     startX:e.clientX, startY:e.clientY,
     lastX:e.clientX, lastY:e.clientY,
