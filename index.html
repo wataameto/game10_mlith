@@ -58,8 +58,8 @@
         <button onclick="touchAction(doRotate)">回転</button>
         <button onclick="touchAction(()=>{ if(tryMove(-1,0)) sfxMove(); })">左</button>
         <button onclick="touchAction(()=>{ if(tryMove(1,0)) sfxMove(); })">右</button>
+        <button style="visibility:hidden" tabindex="-1"></button>
         <button onclick="touchAction(hardDrop)">落下(スペース)</button>
-        <button onclick="touchAction(softDrop)">下</button>
       </div>
       <div id="over">ゲームオーバー！</div>
     </div>
@@ -224,6 +224,15 @@ function tryMove(dx,dy){
   current.px+=dx; current.py+=dy;
   if(collide()){ current.px-=dx; current.py-=dy; return false; }
   return true;
+}
+
+function ghostDropY(){
+  const savedPy=current.py;
+  while(!collide()) current.py++;
+  current.py--;
+  const y=current.py;
+  current.py=savedPy;
+  return y;
 }
 
 function morph(){
@@ -619,6 +628,16 @@ function draw(){
     ctx.beginPath(); ctx.arc(h[0]+4,h[1]-3,1.5,0,Math.PI*2); ctx.fill();
   }
   if(current && !gameOver){
+    const gy0=ghostDropY();
+    if(gy0!==current.py){
+      ctx.globalAlpha=0.28;
+      ctx.fillStyle=current.color;
+      for(const [x,y] of current.cells){
+        const gx=current.px+x, gy=gy0+y;
+        if(gy>=0) ctx.fillRect(gx*CELL,gy*CELL,CELL-1,CELL-1);
+      }
+      ctx.globalAlpha=1;
+    }
     ctx.fillStyle=current.color;
     for(const [x,y] of current.cells){
       const gx=current.px+x, gy=current.py+y;
