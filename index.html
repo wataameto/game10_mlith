@@ -69,7 +69,7 @@
 </style>
 </head>
 <body>
-  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span></span></h1>
+  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span>　<span id="diffLabel">ふつう</span>　さいこう：<span id="bestScore">0</span></span></h1>
   <div id="wrap">
     <div id="fieldWrap">
       <canvas id="cv" width="336" height="672"></canvas>
@@ -100,6 +100,8 @@ const COLS=12, ROWS=24, CELL=28;
 const cv=document.getElementById("cv");
 const ctx=cv.getContext("2d");
 const scoreEl=document.getElementById("score");
+const bestScoreEl=document.getElementById("bestScore");
+const diffLabelEl=document.getElementById("diffLabel");
 const overEl=document.getElementById("over");
 
 // ===== 難易度（3段階）と難易度別の最高スコア記録 =====
@@ -125,6 +127,8 @@ function updateDiffUI(){
     const el=document.getElementById("best_"+k);
     if(el) el.textContent=getBest(k);
   });
+  diffLabelEl.textContent=DIFFICULTIES[difficulty].label;
+  bestScoreEl.textContent=getBest(difficulty);
 }
 function setDifficulty(diff){
   difficulty = diff;
@@ -673,7 +677,7 @@ function startGame(){
 document.addEventListener("keydown",e=>{
   ensureAudio();
   startBgm();
-  if(!started){ startGame(); return; }
+  if(!started) return; // 難易度ボタンでのみスタートさせる
   if(e.key==="m"||e.key==="M"){ toggleMute(); return; }
   if(gameOver) return;
   if(e.key==="ArrowLeft"){ if(tryMove(-1,0)) sfxMove(); }
@@ -686,8 +690,7 @@ document.addEventListener("keydown",e=>{
 
 startScreenEl.addEventListener("pointerdown",e=>{
   ensureAudio(); startBgm();
-  startGame();
-  e.stopPropagation();
+  e.stopPropagation(); // 難易度ボタン以外のタップではスタートしない
 });
 
 // ===== スマホ操作（スワイプ＆タップ、ボタンなし） =====
@@ -697,7 +700,7 @@ function cellPx(){ return cv.getBoundingClientRect().width / COLS; }
 document.addEventListener("pointerdown",e=>{
   if(e.target.closest("button")) return; // ボタン類は通常のクリックとして扱う
   ensureAudio(); startBgm();
-  if(!started){ startGame(); return; }
+  if(!started) return; // 難易度ボタンでのみスタートさせる
   if(gameOver) return;
   touchState={
     startX:e.clientX, startY:e.clientY,
