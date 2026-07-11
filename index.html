@@ -621,7 +621,7 @@ cv.addEventListener("pointerup",e=>{
   const dt=Date.now()-touchState.startT;
   const dxTotal=e.clientX-touchState.startX;
   const dyTotal=e.clientY-touchState.startY;
-  const isTap = !touchState.dragDir;
+  const isTap = !touchState.dragDir || dt<180;
   if(isTap){
     // タップ：位置で回転方向を決める（指の微妙なブレはドラッグ扱いにしない）
     const rect=cv.getBoundingClientRect();
