@@ -60,9 +60,9 @@
     user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
   }
   #diffBar{
-    display:flex; gap:6px; justify-content:center; margin-top:12px;
+    display:flex; justify-content:space-between; margin-top:12px;
   }
-  #diffBar button{ font-size:12px; padding:5px 10px; margin-top:0; }
+  #diffBar button{ font-size:12px; padding:5px 14px; margin-top:0; }
   #diffBar button.active{ background:#eec3a0; color:#3a2418; }
   #startScreen .bestList{ margin-top:8px; font-size:12px; text-align:center; color:#e3cdb8; }
 </style>
@@ -79,10 +79,12 @@
           <div><b>PC</b>：←→移動／↑回転／↓ソフトドロップ<br>スペースでハードドロップ／Cで変身／Mでサウンド</div>
           <br>
           <div><b>スマホ</b>：左右スワイプで移動<br>下ドラッグでソフトドロップ／下フリックでハードドロップ<br>上スワイプで変身<br>タップ：右＝時計回り／左＝反時計回り／上部＝180度回転</div>
+          <br>
+          <div><b>スコア</b>：ブロックを1個置くごとに1点<br>ライン消去は同時消しほどお得（1行=10／2行=40／3行=90／4行=160／5行=250）</div>
           <div id="diffBar">
-            <button data-diff="easy" onclick="setDifficulty('easy')">かんたん</button>
-            <button data-diff="normal" onclick="setDifficulty('normal')">ふつう</button>
             <button data-diff="hard" onclick="setDifficulty('hard')">むずかしい</button>
+            <button data-diff="normal" onclick="setDifficulty('normal')">ふつう</button>
+            <button data-diff="easy" onclick="setDifficulty('easy')">かんたん</button>
           </div>
           <div class="bestList">
             さいこう　かんたん：<span id="best_easy">0</span>／ふつう：<span id="best_normal">0</span>／むずかしい：<span id="best_hard">0</span>
@@ -244,8 +246,18 @@ function reset(){
 
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
+// マス数nが大きいほど選ばれやすくする（重みnに比例、合計1+2+3+4+5=15）
+function pickN(){
+  let r=Math.random()*15;
+  for(let n=1;n<=5;n++){
+    if(r<n) return n;
+    r-=n;
+  }
+  return 5;
+}
+
 function randShape(){
-  const n=1+Math.floor(Math.random()*5);
+  const n=pickN();
   const cells=pick(SHAPES[n]).map(c=>[...c]);
   return { n, cells:normalize(cells), color:pick(COLORS), px:Math.floor(COLS/2)-1, py:0 };
 }
@@ -296,7 +308,7 @@ function ghostDropY(){
 }
 
 function morph(){
-  const n=1+Math.floor(Math.random()*5);
+  const n=pickN();
   const cells=normalize(pick(SHAPES[n]).map(c=>[...c]));
   const old=current.cells;
   current.cells=cells;
@@ -309,6 +321,7 @@ function lock(){
     const gx=current.px+x, gy=current.py+y;
     if(gy>=0) grid[gy][gx]=current.color;
   }
+  score+=1;
   sfxLock();
   clearLines();
   spawnBug();
