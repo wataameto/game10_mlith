@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>mlith</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐛</text></svg>">
+<style>
+  body{
+    background:#2b1b3a;
+    color:#ffe6f5;
+    font-family:"Hiragino Maru Gothic Pro","Comic Sans MS",sans-serif;
+    text-align:center;
+    margin:0; padding:16px;
+  }
+  h1{ font-size:26px; color:#ff9ed8; text-shadow:2px 2px #00000055; margin:4px; }
+  #wrap{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:18px; align-items:flex-start; max-width:100%; }
+  canvas{ background:#1a1026; border:4px solid #ff9ed8; border-radius:10px; box-shadow:0 0 20px #ff9ed855; max-width:92vw; height:auto; touch-action:none; }
+  #side{ text-align:left; font-size:14px; line-height:1.7; max-width:240px; }
+  .key{ background:#ffe6f5; color:#5a2b5a; border-radius:6px; padding:1px 6px; font-weight:bold; }
+  #over{ color:#ff5b8a; font-size:22px; font-weight:bold; display:none; }
+  button{
+    background:#ff9ed8; color:#3a103a; border:none; border-radius:10px;
+    font-size:15px; padding:8px 14px; cursor:pointer; margin-top:8px; font-weight:bold;
+  }
+  button:hover{ background:#ffc1e6; }
+  #touchpad{
+    max-width:360px; margin:14px auto 0; display:grid;
+    grid-template-columns:repeat(2,1fr); gap:10px;
+  }
+  #touchpad button{
+    background:#8ad1ff; color:#0d2b3a;
+    font-size:26px; padding:14px 0; margin-top:0;
+    user-select:none; -webkit-user-select:none; touch-action:manipulation;
+  }
+  #touchpad button:hover{ background:#b3e2ff; }
+</style>
+</head>
+<body>
+  <h1>🌸 mlith 🌸</h1>
+  <div id="wrap">
+    <canvas id="cv" width="336" height="672"></canvas>
+    <div id="side">
+      <div>スコア：<span id="score">0</span></div>
+      <hr style="border-color:#ff9ed855">
+      <div><span class="key">←</span><span class="key">→</span> 移動</div>
+      <div><span class="key">↑</span> 回転</div>
+      <div><span class="key">↓</span> ソフトドロップ</div>
+      <div><span class="key">スペース</span> ハードドロップ</div>
+      <div><span class="key">C</span> 形を変える（変身！）</div>
+      <hr style="border-color:#ff9ed855">
+      <div>🐛はブロックの上をニョロニョロ歩くよ！</div>
+      <div><span class="key">M</span> サウンドON/OFF</div>
+      <div id="over">ゲームオーバーなんよ！</div>
+      <button onclick="restart()">もう一回やるんよ！</button>
+      <button onclick="toggleMute()" id="muteBtn">🔊 サウンドON</button>
+    </div>
+  </div>
+  <div id="touchpad">
+    <button onclick="touchAction(morph)">🐛変身</button>
+    <button onclick="touchAction(doRotate)">🔄</button>
+    <button onclick="touchAction(()=>{ if(tryMove(-1,0)) sfxMove(); })">⬅️</button>
+    <button onclick="touchAction(()=>{ if(tryMove(1,0)) sfxMove(); })">➡️</button>
+    <button onclick="touchAction(hardDrop)">⏬</button>
+    <button onclick="touchAction(softDrop)">⬇️</button>
+  </div>
+
+<script>
+const COLS=12, ROWS=24, CELL=28;
+const cv=document.getElementById("cv");
+const ctx=cv.getContext("2d");
+const scoreEl=document.getElementById("score");
+const overEl=document.getElementById("over");
+
+// ===== サウンド（外部音源なし、Web Audio APIで生成） =====
+let audioCtx=null;
+let muted=false;
+function ensureAudio(){
+  if(!audioCtx){
+    const AC=window.AudioContext||window.webkitAudioContext;
+    audioCtx=new AC();
+  }
+  if(audioCtx.state==="suspended") audioCtx.resume();
+}
+function beep(freq,duration,type,vol,when){
+  if(muted) return;
+  ensureAudio();
+  const t0=audioCtx.currentTime+(when||0);
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.type=type||"square";
+  osc.frequency.value=freq;
+  gain.gain.setValueAtTime(0,t0);
+  gain.gain.linearRampToValueAtTime(vol!=null?vol:0.12,t0+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001,t0+duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0+duration+0.02);
+}
+function sfxMove(){ beep(220,0.05,"square",0.06); }
+function sfxRotate(){ beep(440,0.06,"square",0.08); }
+function sfxSoftDrop(){ beep(180,0.04,"square",0.05); }
+function sfxHardDrop(){ beep(110,0.12,"triangle",0.14); }
+function sfxMorph(){ beep(660,0.1,"sawtooth",0.08); beep(880,0.1,"sawtooth",0.06,0.05); }
+function sfxLock(){ beep(90,0.15,"square",0.1); }
+function sfxClear(n){
+  const notes=[523,659,784,988,1175];
+  for(let i=0;i<Math.max(1,n);i++) beep(notes[Math.min(i,notes.length-1)],0.16,"triangle",0.16,i*0.08);
+}
+function sfxFreeze(){ beep(150,0.2,"sawtooth",0.07); }
+function sfxGameOver(){
+  [392,349,330,294,262].forEach((f,i)=>beep(f,0.28,"square",0.12,i*0.16));
+}
+
+// BGM：短いループを一定間隔で鳴らし続ける簡易チップチューン
+const BGM_NOTES=[262,262,330,392, 330,262,392,330, 294,294,349,440, 392,349,330,294];
+let bgmStep=0, bgmTimer=null;
+function bgmTick(){
+  if(muted || gameOver){ return; }
+  const f=BGM_NOTES[bgmStep%BGM_NOTES.length];
+  beep(f,0.16,"triangle",0.045);
+  bgmStep++;
+}
+function startBgm(){
+  ensureAudio();
+  if(bgmTimer) return;
+  bgmTimer=setInterval(bgmTick,220);
+}
+function stopBgm(){
+  if(bgmTimer){ clearInterval(bgmTimer); bgmTimer=null; }
+}
+function toggleMute(){
+  muted=!muted;
+  document.getElementById("muteBtn").textContent = muted ? "🔇 サウンドOFF" : "🔊 サウンドON";
+  if(!muted){ ensureAudio(); startBgm(); }
+}
+
+// 色パレット
+const COLORS=["#ff9ed8","#ffd166","#8ad1ff","#a0f0a0","#ff8c69","#c89bff","#ff6b9d"];
+
+// nオミノ定義（n=1〜5）
+const SHAPES={
+  1:[ [[0,0]] ],
+  2:[ [[0,0],[1,0]] ],
+  3:[ [[0,0],[1,0],[2,0]], [[0,0],[1,0],[0,1]] ],
+  4:[
+    [[0,0],[1,0],[2,0],[3,0]],
+    [[0,0],[1,0],[2,0],[2,1]],
+    [[0,0],[1,0],[2,0],[0,1]],
+    [[1,0],[2,0],[0,1],[1,1]],
+    [[0,0],[1,0],[1,1],[2,1]],
+    [[0,1],[1,1],[1,0],[2,0]],
+    [[0,0],[1,0],[1,1],[2,0]]
+  ],
+  5:[ // 標準12種のペントミノ（各1形、回転は↑キーでカバー）
+    [[0,0],[1,0],[2,0],[3,0],[4,0]],   // I
+    [[0,0],[0,1],[0,2],[0,3],[1,3]],   // L
+    [[1,0],[1,1],[0,2],[1,2],[0,3]],   // N
+    [[0,0],[1,0],[0,1],[1,1],[0,2]],   // P
+    [[0,0],[1,0],[2,0],[1,1],[1,2]],   // T
+    [[0,0],[2,0],[0,1],[1,1],[2,1]],   // U
+    [[0,0],[0,1],[0,2],[1,2],[2,2]],   // V
+    [[0,0],[0,1],[1,1],[1,2],[2,2]],   // W
+    [[1,0],[0,1],[1,1],[2,1],[1,2]],   // X
+    [[1,0],[0,1],[1,1],[1,2],[1,3]],   // Y
+    [[0,0],[1,0],[1,1],[1,2],[2,2]],   // Z
+    [[1,0],[2,0],[0,1],[1,1],[1,2]]    // F
+  ]
+};
+
+let grid, bugs, score, current, gameOver, dropTimer, bugTimer;
+
+function reset(){
+  grid=Array.from({length:ROWS},()=>new Array(COLS).fill(0));
+  bugs=[];
+  score=0; gameOver=false;
+  dropTimer=0; bugTimer=0;
+  overEl.style.display="none";
+  spawn();
+  updateUI();
+}
+
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function randShape(){
+  const n=1+Math.floor(Math.random()*5);
+  const cells=pick(SHAPES[n]).map(c=>[...c]);
+  return { n, cells:normalize(cells), color:pick(COLORS), px:Math.floor(COLS/2)-1, py:0 };
+}
+
+function normalize(cells){
+  const minX=Math.min(...cells.map(c=>c[0]));
+  const minY=Math.min(...cells.map(c=>c[1]));
+  return cells.map(([x,y])=>[x-minX,y-minY]);
+}
+
+function rotate(cells){ return cells.map(([x,y])=>[y,-x]); }
+
+function spawn(){
+  current=randShape();
+  if(collide()){
+    gameOver=true;
+    overEl.style.display="block";
+    sfxGameOver();
+    stopBgm();
+  }
+}
+
+function collide(){
+  for(const [x,y] of current.cells){
+    const gx=current.px+x, gy=current.py+y;
+    if(gx<0||gx>=COLS||gy>=ROWS) return true;
+    if(gy>=0 && grid[gy][gx]) return true;
+    if(gy>=0 && bugAt(gx,gy)) return true;
+  }
+  return false;
+}
+
+function tryMove(dx,dy){
+  current.px+=dx; current.py+=dy;
+  if(collide()){ current.px-=dx; current.py-=dy; return false; }
+  return true;
+}
+
+function morph(){
+  const n=1+Math.floor(Math.random()*5);
+  const cells=normalize(pick(SHAPES[n]).map(c=>[...c]));
+  const old=current.cells;
+  current.cells=cells;
+  if(collide()){ current.cells=old; } // 入らなきゃ元に戻す
+  else sfxMorph();
+}
+
+function lock(){
+  for(const [x,y] of current.cells){
+    const gx=current.px+x, gy=current.py+y;
+    if(gy>=0) grid[gy][gx]=current.color;
+  }
+  sfxLock();
+  clearLines();
+  spawnBug();
+  spawn();
+  updateUI();
+}
+
+function clearLines(){
+  let cleared=0;
+  for(let y=ROWS-1;y>=0;y--){
+    if(grid[y].every(c=>c)){
+      grid.splice(y,1); grid.unshift(new Array(COLS).fill(0));
+      shiftBugsForClearedRow(y);
+      cleared++; y++;
+    }
+  }
+  if(cleared){ score+=cleared*cleared*10; sfxClear(cleared); }
+}
+
+// ライン消去でその行より上が1段落ちるので、虫の座標も合わせてずらす
+function shiftBugsForClearedRow(clearedY){
+  for(const b of bugs){
+    for(const s of b.segs){ if(s[1] < clearedY) s[1]++; }
+    for(const h of b.history){ if(h.y < clearedY) h.y++; }
+  }
+}
+
+// 虫のステート定義
+const BUG_STATE = {
+  DESCEND: 0,      // 壁沿いに降下中
+  HORIZONTAL: 1,   // 床/ブロック上で横移動
+  CLIMB_UP: 2,     // 壁登り
+  TRAVERSE_TOP: 3, // 天井横断
+  CLIMB_DOWN: 4,   // 下降
+  VAULT: 5,        // 画面端や他の虫に当たった時、自分の胴を踏み台に1段だけ乗り越える
+  FALL: 6          // 支えを失った時の落下（重力）。着地するまで下へ落ち続ける
+};
+
+function getSpawnCandidates() {
+  const cands = [];
+  // 1. 左右画面端：最下部の空きのみ（地面または一番上のブロックの上）
+  for (const x of [0, COLS - 1]) {
+    let spawnY = ROWS - 1;
+    while (spawnY >= 0 && (grid[spawnY][x] || bugAt(x, spawnY))) spawnY--;
+    const isGround = spawnY === ROWS - 1;
+    const isOnBlock = spawnY >= 0 && spawnY < ROWS - 1 && grid[spawnY + 1][x];
+    if (spawnY >= 0 && (isGround || isOnBlock)) {
+      const dir = x === 0 ? 1 : -1;
+      const wallSide = x === 0 ? -1 : 1;
+      cands.push({x, y: spawnY, dir, wallSide});
+    }
+  }
+  // 2. 密閉された隙間：左右がブロックで囲まれた空きスペース
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 1; x < COLS - 1; x++) {
+      if (!grid[y][x] && !bugAt(x, y)) {
+        const leftBlock = grid[y][x - 1];
+        const rightBlock = grid[y][x + 1];
+        if (leftBlock && rightBlock) {
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          const wallSide = dir === 1 ? -1 : 1;
+          cands.push({x, y, dir, wallSide});
+        }
+      }
+    }
+  }
+  return cands;
+}
+
+function spawnBug(){
+  const cands = getSpawnCandidates();
+  if (cands.length && Math.random() < 0.35) {
+    const c = pick(cands);
+    const maxLen = 3 + Math.floor(Math.random() * 3);
+    const segs = [[c.x, c.y], [c.x, c.y]];
+    const lifespan = 10 + Math.floor(Math.random() * 12);
+    const history = segs.map(([x, y]) => ({x, y}));
+    bugs.push({segs, dir: c.dir, maxLen, age:0, lifespan, state:BUG_STATE.DESCEND, history, wallSide: c.wallSide});
+  }
+}
+
+function bugAt(x,y){ return bugs.some(b=>b.segs.some(s=>s[0]===x&&s[1]===y)); }
+
+function hasSupport(x, y) {
+  // 最下行は床扱い＝足場あり
+  if (y >= ROWS - 1) return true;
+  return grid[y + 1][x];
+}
+
+function freezeBug(b) {
+  for (const s of b.segs) {
+    if (s[1] >= 0 && s[1] < ROWS && s[0] >= 0 && s[0] < COLS && !grid[s[1]][s[0]]) {
+      grid[s[1]][s[0]] = "#8a8a8a";
+    }
+  }
+  sfxFreeze();
+}
+
+function canMoveTo(x, y, bug) {
+  return x >= 0 && x < COLS && y >= 0 && y < ROWS && !grid[y][x] && !bugAt(x, y);
+}
+
+function hasWallOnSide(bug, x, y) {
+  // 画面端はのぼれない。ブロックのみ「壁」として扱う
+  const wx = x + bug.wallSide;
+  if (wx >= 0 && wx < COLS && grid[y][wx]) return true;
+  return false;
+}
+
+function moveBugs() {
+  for (const b of bugs) {
+    b.age++;
+    const head = b.segs[0];
+    const hx = head[0], hy = head[1];
+
+    // 重力：床/ブロックの上を歩いていたはずが支えを失ったら落下状態へ
+    if (b.state === BUG_STATE.HORIZONTAL && !hasSupport(hx, hy)) {
+      b.state = BUG_STATE.FALL;
+    }
+
+    let nx = hx, ny = hy;
+
+    switch (b.state) {
+      case BUG_STATE.FALL: {
+        // 着地するまでまっすぐ下へ落ち続ける
+        if (canMoveTo(hx, hy + 1, b)) {
+          nx = hx; ny = hy + 1;
+        } else {
+          b.state = BUG_STATE.HORIZONTAL;
+        }
+        break;
+      }
+      case BUG_STATE.DESCEND: {
+        // 壁沿いに下へ降りる（壁側にブロックがある限り下降）
+        if (canMoveTo(hx, hy + 1, b) && hasWallOnSide(b, hx, hy + 1)) {
+          nx = hx; ny = hy + 1;
+        }
+        // 着地（足場がある）または壁が途切れた → 横移動へ
+        else if (hasSupport(hx, hy) || !hasWallOnSide(b, hx, hy)) {
+          b.state = BUG_STATE.HORIZONTAL;
+          b.dir = -b.wallSide; // 進行方向＝壁と逆側
+          const fx = hx + b.dir;
+          if (canMoveTo(fx, hy, b)) {
+            nx = fx; ny = hy;
+          }
+        }
+        // 下も壁側もダメ → 横移動試す
+        else {
+          b.state = BUG_STATE.HORIZONTAL;
+          const fx = hx + b.dir;
+          if (canMoveTo(fx, hy, b)) {
+            nx = fx; ny = hy;
+          } else {
+            b.dir *= -1;
+          }
+        }
+        break;
+      }
+
+      case BUG_STATE.HORIZONTAL: {
+        const fx = hx + b.dir;
+        if (canMoveTo(fx, hy, b)) {
+          nx = fx; ny = hy;
+        }
+        else if (fx >= 0 && fx < COLS && grid[hy][fx]) {
+          // 進行方向にブロックがある＝這って登れる。wallSideを追従させる
+          b.wallSide = b.dir;
+          if (canMoveTo(hx, hy - 1, b)) {
+            nx = hx; ny = hy - 1;
+            b.state = BUG_STATE.CLIMB_UP;
+          } else {
+            b.dir *= -1;
+          }
+        }
+        else if (b.segs.length >= 2) {
+          // 画面端や他の虫でふさがれている＝壁はのぼれないが、自分の胴を踏み台に1段だけ乗り越える
+          b.state = BUG_STATE.VAULT;
+          b.vaultStep = 0;
+        }
+        else {
+          b.dir *= -1;
+        }
+        break;
+      }
+
+      case BUG_STATE.VAULT: {
+        if (b.vaultStep === 0) {
+          if (canMoveTo(hx, hy - 1, b)) {
+            nx = hx; ny = hy - 1;
+            b.vaultStep = 1;
+          } else {
+            b.dir *= -1;
+            b.state = BUG_STATE.HORIZONTAL;
+          }
+        } else if (b.vaultStep === 1) {
+          b.dir *= -1;
+          const tx = hx + b.dir;
+          if (canMoveTo(tx, hy, b)) {
+            nx = tx; ny = hy;
+            b.vaultStep = 2;
+          } else {
+            b.state = BUG_STATE.HORIZONTAL;
+          }
+        } else {
+          if (canMoveTo(hx, hy + 1, b)) {
+            nx = hx; ny = hy + 1;
+          }
+          b.state = BUG_STATE.HORIZONTAL;
+        }
+        break;
+      }
+
+      case BUG_STATE.CLIMB_UP: {
+        if (canMoveTo(hx, hy - 1, b) && hasWallOnSide(b, hx, hy - 1)) {
+          nx = hx; ny = hy - 1;
+        } else {
+          b.state = BUG_STATE.TRAVERSE_TOP;
+          b.dir = -b.wallSide;
+          const tx = hx + b.dir;
+          if (canMoveTo(tx, hy, b) && hasSupport(tx, hy)) {
+            nx = tx; ny = hy;
+          } else {
+            b.state = BUG_STATE.CLIMB_DOWN;
+          }
+        }
+        break;
+      }
+
+      case BUG_STATE.TRAVERSE_TOP: {
+        const tx = hx + b.dir;
+        if (canMoveTo(hx, hy + 1, b) && hasWallOnSide(b, hx, hy)) {
+          b.state = BUG_STATE.CLIMB_DOWN;
+          nx = hx; ny = hy + 1;
+        }
+        else if (canMoveTo(tx, hy, b) && hasSupport(tx, hy)) {
+          nx = tx; ny = hy;
+        }
+        else {
+          b.dir *= -1;
+          const tx2 = hx + b.dir;
+          if (canMoveTo(tx2, hy, b) && hasSupport(tx2, hy)) {
+            nx = tx2; ny = hy;
+          } else {
+            b.state = BUG_STATE.CLIMB_DOWN;
+          }
+        }
+        break;
+      }
+
+      case BUG_STATE.CLIMB_DOWN: {
+        if (canMoveTo(hx, hy + 1, b) && hasWallOnSide(b, hx, hy + 1)) {
+          nx = hx; ny = hy + 1;
+        }
+        else if (hasSupport(hx, hy) || !hasWallOnSide(b, hx, hy)) {
+          b.state = BUG_STATE.HORIZONTAL;
+          b.dir = -b.wallSide;
+          const fx = hx + b.dir;
+          if (canMoveTo(fx, hy, b)) {
+            nx = fx; ny = hy;
+          }
+        } else {
+          b.state = BUG_STATE.HORIZONTAL;
+          const fx = hx + b.dir;
+          if (canMoveTo(fx, hy, b)) {
+            nx = fx; ny = hy;
+          } else {
+            b.dir *= -1;
+          }
+        }
+        break;
+      }
+    }
+
+    if (nx === hx && ny === hy) {
+      b.stuckTicks = (b.stuckTicks || 0) + 1;
+    } else {
+      b.stuckTicks = 0;
+    }
+
+    if (nx !== hx || ny !== hy) {
+      b.history.unshift({x: nx, y: ny});
+      if (b.history.length > b.maxLen) b.history.pop();
+
+      b.segs = b.history.slice(0, b.segs.length).map(p => [p.x, p.y]);
+
+      if (b.segs.length < b.maxLen && Math.random() < 0.65) {
+        const last = b.history[b.history.length - 1];
+        b.history.push({x: last.x, y: last.y});
+        b.segs.push([last.x, last.y]);
+      }
+    }
+
+    if (b.age > b.lifespan || b.stuckTicks >= 6) {
+      freezeBug(b);
+      b.dead = true;
+    }
+  }
+  bugs = bugs.filter(b => !b.dead && b.segs.length > 0);
+}
+
+
+function hardDrop(){
+  if(gameOver) return;
+  sfxHardDrop();
+  while(tryMove(0,1)){}
+  lock();
+}
+
+function softDrop(){
+  if(gameOver) return;
+  if(!tryMove(0,1)) lock();
+  else sfxSoftDrop();
+}
+
+function doRotate(){
+  current.cells=normalize(rotate(current.cells));
+  if(collide()){
+    current.cells=normalize(rotate(rotate(rotate(current.cells)))); // 入らなければ元に戻す
+  } else {
+    sfxRotate();
+  }
+}
+
+document.addEventListener("keydown",e=>{
+  ensureAudio();
+  startBgm();
+  if(e.key==="m"||e.key==="M"){ toggleMute(); return; }
+  if(gameOver) return;
+  if(e.key==="ArrowLeft"){ if(tryMove(-1,0)) sfxMove(); }
+  else if(e.key==="ArrowRight"){ if(tryMove(1,0)) sfxMove(); }
+  else if(e.key==="ArrowUp") doRotate();
+  else if(e.key==="ArrowDown") softDrop();
+  else if(e.key===" "){ e.preventDefault(); hardDrop(); }
+  else if(e.key==="c"||e.key==="C") morph();
+});
+
+function touchAction(fn){
+  ensureAudio();
+  startBgm();
+  if(gameOver) return;
+  fn();
+}
+
+function updateUI(){
+  scoreEl.textContent=score;
+}
+
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    if(grid[y][x]){
+      ctx.fillStyle=grid[y][x];
+      ctx.fillRect(x*CELL,y*CELL,CELL-1,CELL-1);
+    }
+  }
+  ctx.font=(CELL-4)+"px serif";
+  ctx.textBaseline="bottom";
+  ctx.lineCap="round"; ctx.lineJoin="round";
+  for(const b of bugs){
+    const pts=b.segs.map(s=>[s[0]*CELL+CELL/2, (s[1]+1)*CELL-CELL/2]);
+    if(pts.length>1){
+      ctx.strokeStyle="#6fbf3f"; ctx.lineWidth=CELL*0.55;
+      ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+      for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+      ctx.stroke();
+    }
+    for(let i=0;i<pts.length;i++){
+      ctx.fillStyle = i===0 ? "#ff7ec0" : "#8fd45a";
+      ctx.beginPath(); ctx.arc(pts[i][0],pts[i][1], CELL*0.30, 0, Math.PI*2); ctx.fill();
+    }
+    const h=pts[0];
+    ctx.fillStyle="#fff";
+    ctx.beginPath(); ctx.arc(h[0]-4,h[1]-3,3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(h[0]+4,h[1]-3,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#222";
+    ctx.beginPath(); ctx.arc(h[0]-4,h[1]-3,1.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(h[0]+4,h[1]-3,1.5,0,Math.PI*2); ctx.fill();
+  }
+  if(current && !gameOver){
+    ctx.fillStyle=current.color;
+    for(const [x,y] of current.cells){
+      const gx=current.px+x, gy=current.py+y;
+      if(gy>=0) ctx.fillRect(gx*CELL,gy*CELL,CELL-1,CELL-1);
+    }
+  }
+}
+
+let last=0;
+const DROP=450;
+function loop(t){
+  if(!gameOver){
+    if(t-last>DROP){ last=t; if(!tryMove(0,1)) lock(); bugTimer++; if(bugTimer>1){ bugTimer=0; moveBugs(); clearLines(); updateUI(); } }
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function restart(){ reset(); }
+
+reset();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
