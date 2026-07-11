@@ -604,7 +604,7 @@ cv.addEventListener("pointermove",e=>{
   const cell=cellPx();
   const dxTotal=e.clientX-touchState.startX;
   const dyTotal=e.clientY-touchState.startY;
-  if(!touchState.dragDir && (Math.abs(dxTotal)>cell*0.9 || Math.abs(dyTotal)>cell*0.9)){
+  if(!touchState.dragDir && (Math.abs(dxTotal)>cell || Math.abs(dyTotal)>cell)){
     touchState.dragDir = Math.abs(dxTotal)>Math.abs(dyTotal) ? "h" : "v";
   }
   if(touchState.dragDir==="h"){
@@ -621,7 +621,7 @@ cv.addEventListener("pointerup",e=>{
   const dt=Date.now()-touchState.startT;
   const dxTotal=e.clientX-touchState.startX;
   const dyTotal=e.clientY-touchState.startY;
-  const isTap = Math.abs(dxTotal)<cell*0.5 && Math.abs(dyTotal)<cell*0.5;
+  const isTap = !touchState.dragDir;
   if(isTap){
     // タップ：位置で回転方向を決める（指の微妙なブレはドラッグ扱いにしない）
     const rect=cv.getBoundingClientRect();
