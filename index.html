@@ -60,20 +60,15 @@
     user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
   }
   #diffBar{
-    display:flex; gap:6px; flex:0 0 auto; margin-top:4px;
-    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+    display:flex; gap:6px; justify-content:center; margin-top:12px;
   }
   #diffBar button{ font-size:12px; padding:5px 10px; margin-top:0; }
   #diffBar button.active{ background:#e0b98a; color:#2a160a; }
+  #startScreen .bestList{ margin-top:8px; font-size:12px; text-align:center; color:#d8c3a5; }
 </style>
 </head>
 <body>
-  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span>　さいこう：<span id="bestScore">0</span></span></h1>
-  <div id="diffBar">
-    <button data-diff="easy" onclick="setDifficulty('easy')">かんたん</button>
-    <button data-diff="normal" onclick="setDifficulty('normal')">ふつう</button>
-    <button data-diff="hard" onclick="setDifficulty('hard')">むずかしい</button>
-  </div>
+  <h1>mlith <span id="scoreLine">スコア：<span id="score">0</span></span></h1>
   <div id="wrap">
     <div id="fieldWrap">
       <canvas id="cv" width="336" height="672"></canvas>
@@ -84,7 +79,15 @@
           <div><b>PC</b>：←→移動／↑回転／↓ソフトドロップ<br>スペースでハードドロップ／Cで変身／Mでサウンド</div>
           <br>
           <div><b>スマホ</b>：左右スワイプで移動<br>下ドラッグでソフトドロップ／下フリックでハードドロップ<br>上スワイプで変身<br>タップ：右＝時計回り／左＝反時計回り／上部＝180度回転</div>
-          <div class="go">タップ／キーでスタート</div>
+          <div id="diffBar">
+            <button data-diff="easy" onclick="setDifficulty('easy')">かんたん</button>
+            <button data-diff="normal" onclick="setDifficulty('normal')">ふつう</button>
+            <button data-diff="hard" onclick="setDifficulty('hard')">むずかしい</button>
+          </div>
+          <div class="bestList">
+            さいこう　かんたん：<span id="best_easy">0</span>／ふつう：<span id="best_normal">0</span>／むずかしい：<span id="best_hard">0</span>
+          </div>
+          <div class="go">難易度をタップしてスタート</div>
         </div>
       </div>
     </div>
@@ -96,7 +99,6 @@ const COLS=12, ROWS=24, CELL=28;
 const cv=document.getElementById("cv");
 const ctx=cv.getContext("2d");
 const scoreEl=document.getElementById("score");
-const bestScoreEl=document.getElementById("bestScore");
 const overEl=document.getElementById("over");
 
 // ===== 難易度（3段階）と難易度別の最高スコア記録 =====
@@ -118,7 +120,10 @@ function updateDiffUI(){
   document.querySelectorAll("#diffBar button").forEach(b=>{
     b.classList.toggle("active", b.dataset.diff===difficulty);
   });
-  bestScoreEl.textContent = getBest(difficulty);
+  Object.keys(DIFFICULTIES).forEach(k=>{
+    const el=document.getElementById("best_"+k);
+    if(el) el.textContent=getBest(k);
+  });
 }
 function setDifficulty(diff){
   difficulty = diff;
@@ -126,7 +131,7 @@ function setDifficulty(diff){
   DROP = DIFFICULTIES[diff].drop;
   BUG_CHANCE = DIFFICULTIES[diff].bugChance;
   updateDiffUI();
-  restart();
+  startGame();
 }
 
 // ===== サウンド（外部音源なし、Web Audio APIで生成） =====
@@ -795,7 +800,12 @@ function loop(t){
   requestAnimationFrame(loop);
 }
 
-function restart(){ reset(); }
+function restart(){
+  started=false;
+  startScreenEl.style.display="flex";
+  reset();
+  updateDiffUI();
+}
 
 updateDiffUI();
 reset();
