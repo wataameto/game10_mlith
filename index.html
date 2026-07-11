@@ -548,29 +548,30 @@ function softDrop(){
   else sfxSoftDrop();
 }
 
-function doRotate(){
-  current.cells=normalize(rotate(current.cells));
-  if(collide()){
-    current.cells=normalize(rotate(rotate(rotate(current.cells)))); // 入らなければ元に戻す
-  } else {
-    sfxRotate();
+// 回転先で衝突したら左右に少しずらして再試行する簡易ウォールキック
+function applyRotation(newCells){
+  const oldCells=current.cells, oldPx=current.px;
+  const kicks=[0,-1,1,-2,2];
+  for(const k of kicks){
+    current.cells=newCells;
+    current.px=oldPx+k;
+    if(!collide()){ sfxRotate(); return true; }
   }
+  current.cells=oldCells;
+  current.px=oldPx;
+  return false;
+}
+
+function doRotate(){
+  applyRotation(normalize(rotate(current.cells)));
 }
 
 function doRotateCCW(){
-  current.cells=normalize(rotate(rotate(rotate(current.cells))));
-  if(collide()){
-    current.cells=normalize(rotate(current.cells)); // 入らなければ元に戻す
-  } else {
-    sfxRotate();
-  }
+  applyRotation(normalize(rotate(rotate(rotate(current.cells)))));
 }
 
 function doRotate180(){
-  const old=current.cells;
-  current.cells=normalize(rotate(rotate(current.cells)));
-  if(collide()){ current.cells=old; }
-  else sfxRotate();
+  applyRotation(normalize(rotate(rotate(current.cells))));
 }
 
 document.addEventListener("keydown",e=>{
@@ -623,18 +624,18 @@ function handlePointerEnd(e){
   const dt=Date.now()-touchState.startT;
   const dxTotal=e.clientX-touchState.startX;
   const dyTotal=e.clientY-touchState.startY;
-  const isTap = !touchState.dragDir || dt<180;
-  if(isTap){
-    // タップ：位置で回転方向を決める（指の微妙なブレはドラッグ扱いにしない）
+  // 明確な意図が読み取れる場合だけ変身／ハードドロップとして扱う。
+  // それ以外（横移動の余韻なども含む）は、最終的な移動量が小さければタップ＝回転とみなす。
+  if(touchState.dragDir==="v" && dyTotal<-cell*1.5){
+    morph(); // 上スワイプ→変身
+  } else if(touchState.dragDir==="v" && dyTotal>cell*1.5 && dt<300){
+    hardDrop(); // 下フリック→ハードドロップ
+  } else if(Math.abs(dxTotal)<cell*1.3 && Math.abs(dyTotal)<cell*1.3){
     const rect=cv.getBoundingClientRect();
     const relX=e.clientX-rect.left, relY=e.clientY-rect.top;
     if(relY<rect.height*0.15) doRotate180();
     else if(relX<rect.width/2) doRotateCCW();
     else doRotate();
-  } else if(touchState.dragDir==="v" && dyTotal<-cell*1.5){
-    morph(); // 上スワイプ→変身
-  } else if(touchState.dragDir==="v" && dyTotal>cell*1.5 && dt<300){
-    hardDrop(); // 下フリック→ハードドロップ
   }
   touchState=null;
 }
