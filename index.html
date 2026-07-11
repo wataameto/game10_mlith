@@ -604,7 +604,7 @@ cv.addEventListener("pointermove",e=>{
   const cell=cellPx();
   const dxTotal=e.clientX-touchState.startX;
   const dyTotal=e.clientY-touchState.startY;
-  if(!touchState.dragDir && (Math.abs(dxTotal)>cell*0.5 || Math.abs(dyTotal)>cell*0.5)){
+  if(!touchState.dragDir && (Math.abs(dxTotal)>cell*0.9 || Math.abs(dyTotal)>cell*0.9)){
     touchState.dragDir = Math.abs(dxTotal)>Math.abs(dyTotal) ? "h" : "v";
   }
   if(touchState.dragDir==="h"){
@@ -621,8 +621,9 @@ cv.addEventListener("pointerup",e=>{
   const dt=Date.now()-touchState.startT;
   const dxTotal=e.clientX-touchState.startX;
   const dyTotal=e.clientY-touchState.startY;
-  if(!touchState.dragDir){
-    // タップ：位置で回転方向を決める
+  const isTap = Math.abs(dxTotal)<cell*0.5 && Math.abs(dyTotal)<cell*0.5;
+  if(isTap){
+    // タップ：位置で回転方向を決める（指の微妙なブレはドラッグ扱いにしない）
     const rect=cv.getBoundingClientRect();
     const relX=e.clientX-rect.left, relY=e.clientY-rect.top;
     if(relY<rect.height*0.15) doRotate180();
@@ -650,7 +651,7 @@ function draw(){
   }
   ctx.font=(CELL-4)+"px serif";
   ctx.textBaseline="bottom";
-  ctx.lineCap="round"; ctx.lineJoin="round";
+  ctx.lineCap="round"; ctx.lineJoin="miter";
   for(const b of bugs){
     const pts=b.segs.map(s=>[s[0]*CELL+CELL/2, (s[1]+1)*CELL-CELL/2]);
     if(pts.length>1){
